@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String?
+  carts     Cart[]
+  orders    Order[]
+}
+
+model Product {
+  id             Int             @id @default(autoincrement())
+  name           String
+  Brand          String
+  description    String
+  price          Float
+  imageUrl       String?
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+  category       Category        @relation(fields: [categoryId], references: [id])
+  categoryId     Int
+  subCategory    SubCategory     @relation(fields: [subCategoryId], references: [id])
+  subCategoryId  Int
+  productImages  ProductImage[]
+  productOptions ProductOption[]
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId Int
+}
+
+model Category {
+  id            Int           @id @default(autoincrement())
+  name          String
+  image_url     String
+  products      Product[]
+  subCategories SubCategory[]
+}
+
+model SubCategory {
+  id           Int        @id @default(autoincrement())
+  name         String
+  category     Category   @relation(fields: [categoryId], references: [id])
+  categoryId   Int
+  products     Product[]
+}
+
+model ProductOptionType {
+  id         Int               @id @default(autoincrement())
+  name       String
+  identifier String            @unique
+  options    ProductOption[]
+}
+
+model ProductOption {
+  id         Int               @id @default(autoincrement())
+  type       ProductOptionType @relation(fields: [typeId], references: [id])
+  typeId     Int
+  value      String
+  price      Float
+  product    Product           @relation(fields: [productId], references: [id])
+  productId  Int
+  cartItems  CartItem[]        @relation("ProductOptionCartItems")
+  orderItems OrderItem[]       @relation("ProductOptionOrderItems")
+}
+
+model Cart {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id])
+  cartItems CartItem[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model CartItem {
+  id              Int           @id @default(autoincrement())
+  cartId          Int
+  cart            Cart          @relation(fields: [cartId], references: [id])
+  productId       Int
+  product         Product       @relation(fields: [productId], references: [id])
+  quantity        Int
+  productOptionId Int
+  productOption   ProductOption @relation(fields: [productOptionId], references: [id], name: "ProductOptionCartItems")
+}
+
+model Order {
+  id         Int        @id @default(autoincrement())
+  userId     Int
+  user       User       @relation(fields: [userId], references: [id])
+  total      Float      // Automatically calculated based on OrderItem records
+  status     String     // Examples: "Pending", "Completed", "Shipped", etc.
+  orderItems OrderItem[]
+  createdAt  DateTime   @default(now())
+}
+
+model OrderItem {
+  id              Int           @id @default(autoincrement())
+  orderId         Int
+  order           Order         @relation(fields: [orderId], references: [id])
+  productId       Int
+  product         Product       @relation(fields: [productId], references: [id])
+  price           Float         // Price at the time of order
+  quantity        Int
+  productOptionId Int
+  productOption   ProductOption @relation(fields: [productOptionId], references: [id], name: "ProductOptionOrderItems")
+}
